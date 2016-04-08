@@ -1,4 +1,8 @@
 #include <iostream>
+#include <vector>
+#include <list>
+#include <string>
+
 #include <algorithm>
 
 using namespace std;
@@ -17,8 +21,8 @@ public:
 		speed = 2;
 	}
 
-	void walk(int step, char** field, int xSize, int ySize) {
-		if(step == 1 && x < xSize - 1 && field[y][x + 1] != '#') {
+	void walk(int step, vector<string>& field) {
+		if(step == 1 && x < field[y].length() - 1 && field[y][x + 1] != '#') {
 			field[y][x] = '.';
 			x++;
 			field[y][x] = 'K';
@@ -28,7 +32,7 @@ public:
 			x--;
 			field[y][x] = 'K';
 		}
-		else if(step == 3 && y < ySize - 1 && field[y + 1][x] != '#') {
+		else if(step == 3 && y < field.size() - 1 && field[y + 1][x] != '#') {
 			field[y][x] = '.';
 			y++;
 			field[y][x] = 'K';
@@ -57,15 +61,20 @@ class Monster{
 	int x;
 	int y;
 public:
+	Monster() {
+		damage = 2;
+		health = 2;
+		speed = 2;
+	}
 	Monster(int inputY, int inputX):y(inputY), x(inputX) {
 		damage = 2;
 		health = 2;
 		speed = 2;
 	}
 
-	void walk(char** field, int xSize, int ySize) {
+	void walk(vector<string>& field) {
 		int step = rand() % 4;
-		if(step == 0 && x < xSize - 1 && field[y][x + 1] != '#') {
+		if(step == 0 && x < field[y].length() - 1 && field[y][x + 1] != '#') {
 			field[y][x] = '.';
 			x++;
 			field[y][x] = 'M';
@@ -75,7 +84,7 @@ public:
 			x--;
 			field[y][x] = 'M';
 		}
-		else if(step == 2 && y < ySize - 1 && field[y + 1][x] != '#') {
+		else if(step == 2 && y < field.size() - 1 && field[y + 1][x] != '#') {
 			field[y][x] = '.';
 			y++;
 			field[y][x] = 'M';
@@ -95,67 +104,90 @@ public:
 	}
 };
 
+void inputField(vector<string>& field);
+void outputField(vector<string>& field);
 
+void getKnightAndMonsters(vector<string>& field, int& xKnight, int& yKnight,
+ vector<int>& xMonster, vector<int>& yMonster);
 
-void getFieldAndKnightAndMonster(char** field,int& x, int& y, int& xKnight, int& yKnight, int& xMonster, int& yMonster);
-void displayField(char** field,int& x, int& y);
+void allMonstersWalk(vector<Monster>& monsters, vector<string>& field);
+
 
 int main() {
-	int x, y;
-	char** field = new char*[y];
+	vector<string> field;
 	int xKingt = 0, yKnight = 0;
-	int xMonster = 0, yMonster = 0;
+	vector<int> xMonster, yMonster;
+	vector<Monster> monsters;
 
 	int step = 0;
 
-	cout << "insert x y:" << endl;
-	cin >> x >> y;
-	
-	getFieldAndKnightAndMonster(field, x, y, xKingt, yKnight, xMonster, yMonster);
+	inputField(field);
+
+	getKnightAndMonsters(field, xKingt, yKnight, xMonster, yMonster);
+
+	cout << "Knight: " << xKingt << " " << yKnight << endl;
+	for(int i = 0; i < xMonster.size(); i++) {
+		cout << "Monster " << i << ": " << xMonster[i] << " " << yMonster[i] <<endl; 
+	}
 
 
 	Knight holyKnight(yKnight, xKingt);	
-	Monster unholyMonster(yMonster, xMonster);
 
-	cout << holyKnight.getY() << " " << holyKnight.getX() << endl;
+	for(int i = 0; i < xMonster.size(); i++) {
+		Monster newMonster(yMonster[i], xMonster[i]);
+		monsters.push_back(newMonster);
+	}
 
 
 	cout << "insert step: 1,2,3,4" << endl;
 	cin >> step;
 	while(step > 0) {
-		holyKnight.walk(step, field, x, y);
-		unholyMonster.walk(field, x, y);
-		displayField(field, x, y);
+		holyKnight.walk(step, field);
+		allMonstersWalk(monsters, field);
+		cout << endl;
+		cout << "=======" << endl;
+		outputField(field);
 		cin >> step;
 	}
-
+//	*/
 	return 0;
 }
 
-void getFieldAndKnightAndMonster(char** field, int& x, int& y, int& xKnight, int& yKnight, int& xMonster, int& yMonster) {
-	cout << "insert field" << endl;
-	for(int i = 0; i < y; i++) {
-		field[i] = new char[x];
-		for(int j = 0; j < x; j++) {
-			cin >> field[i][j];
+void inputField(vector<string>& field) {
+	string buffer;
+	getline(cin, buffer);
+	while(! buffer.empty()) {
+		field.push_back(buffer);
+		getline(cin, buffer);
+	}
+}
+
+void outputField(vector<string>& field) {
+	for(vector<string>::iterator iter = field.begin(); iter != field.end(); ++iter) {
+		cout << *iter << endl;
+	}
+}
+
+
+void getKnightAndMonsters(vector<string>& field, int& xKnight, int& yKnight,
+ vector<int>& xMonster, vector<int>& yMonster) {
+	for(int i = 0; i < field.size(); i++) {
+		for(int j = 0; j < field[i].length(); j++) {
 			if(field[i][j] == 'K') {
 				yKnight = i;
 				xKnight = j;
 			}
 			else if(field[i][j] == 'M') {
-				yMonster = i;
-				xMonster = j;
-			}
+				yMonster.push_back(i);
+				xMonster.push_back(j);
+			}	
 		}
-	}
+	}	
 }
-void displayField(char** field,int& x, int& y) {	
-	for(int i = 0; i < y; i++) {
-		for(int j = 0; j < x; j++) {
-			cout << field[i][j];
-			if(j == x - 1) {
-				cout << endl;
-			}
-		}
+
+
+void allMonstersWalk(vector<Monster>& monsters, vector<string>& field) {
+	for(int i = 0; i < monsters.size(); i++) {
+		monsters[i].walk(field);
 	}
 }
