@@ -2,12 +2,11 @@
 #include <vector>
 #include <list>
 #include <string>
-
 #include <algorithm>
 
 using namespace std;
 
-class Knight{
+class Knight {
 	int damage;
 	int health;
 	int speed;
@@ -108,16 +107,19 @@ void inputField(vector<string>& field);
 void outputField(vector<string>& field);
 
 void getKnightAndMonsters(vector<string>& field, int& xKnight, int& yKnight,
- vector<int>& xMonster, vector<int>& yMonster);
+ list<int>& xMonster, list<int>& yMonster);
 
-void allMonstersWalk(vector<Monster>& monsters, vector<string>& field);
+void createMonster(list<Monster>& monsters, list<int>& xMonster, list<int>& yMonster);
 
+void allMonstersWalk(list<Monster>& monsters, vector<string>& field);
+
+void displayMonsters(list<Monster>& monsters);
 
 int main() {
 	vector<string> field;
 	int xKingt = 0, yKnight = 0;
-	vector<int> xMonster, yMonster;
-	vector<Monster> monsters;
+	list<int> xMonster, yMonster;
+	list<Monster> monsters;
 
 	int step = 0;
 
@@ -125,19 +127,9 @@ int main() {
 
 	getKnightAndMonsters(field, xKingt, yKnight, xMonster, yMonster);
 
-	cout << "Knight: " << xKingt << " " << yKnight << endl;
-	for(int i = 0; i < xMonster.size(); i++) {
-		cout << "Monster " << i << ": " << xMonster[i] << " " << yMonster[i] <<endl; 
-	}
-
+	createMonster(monsters, xMonster, yMonster);
 
 	Knight holyKnight(yKnight, xKingt);	
-
-	for(int i = 0; i < xMonster.size(); i++) {
-		Monster newMonster(yMonster[i], xMonster[i]);
-		monsters.push_back(newMonster);
-	}
-
 
 	cout << "insert step: 1,2,3,4" << endl;
 	cin >> step;
@@ -149,7 +141,7 @@ int main() {
 		outputField(field);
 		cin >> step;
 	}
-//	*/
+
 	return 0;
 }
 
@@ -170,7 +162,7 @@ void outputField(vector<string>& field) {
 
 
 void getKnightAndMonsters(vector<string>& field, int& xKnight, int& yKnight,
- vector<int>& xMonster, vector<int>& yMonster) {
+ list<int>& xMonster, list<int>& yMonster) {
 	for(int i = 0; i < field.size(); i++) {
 		for(int j = 0; j < field[i].length(); j++) {
 			if(field[i][j] == 'K') {
@@ -186,8 +178,23 @@ void getKnightAndMonsters(vector<string>& field, int& xKnight, int& yKnight,
 }
 
 
-void allMonstersWalk(vector<Monster>& monsters, vector<string>& field) {
-	for(int i = 0; i < monsters.size(); i++) {
-		monsters[i].walk(field);
+void allMonstersWalk(list<Monster>& monsters, vector<string>& field) {
+	list<Monster>::iterator iter = monsters.begin();
+	while( iter != monsters.end()){
+		iter->walk(field);
+		++iter;
 	}
 }
+
+
+void createMonster(list<Monster>& monsters, list<int>& xMonster, list<int>& yMonster) {
+	list<int>::iterator iterX = xMonster.begin();
+	list<int>::iterator iterY = yMonster.begin();
+	while(iterX != xMonster.end() && iterY != yMonster.end()) {
+		Monster newMonster(*iterY, *iterX);
+		monsters.push_back(newMonster);
+		++iterX;
+		++iterY;
+	}
+}
+
