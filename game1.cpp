@@ -6,6 +6,13 @@
 
 using namespace std;
 
+class  dot{ 
+public:
+	int y;
+	int x;
+	dot(int inputY, int inputX): y(inputY), x(inputX) {}
+};
+
 class Knight {
 	int damage;
 	int health;
@@ -14,7 +21,7 @@ class Knight {
 	int x;
 	int y;
 public:
-	Knight(int inputY, int inputX):y(inputY), x(inputX) {
+	Knight(dot YX):y(YX.y), x(YX.x) {
 		damage = 2;
 		health = 2;
 		speed = 2;
@@ -60,12 +67,7 @@ class Monster{
 	int x;
 	int y;
 public:
-	Monster() {
-		damage = 2;
-		health = 2;
-		speed = 2;
-	}
-	Monster(int inputY, int inputX):y(inputY), x(inputX) {
+	Monster(dot YX): y(YX.y), x(YX.x) {
 		damage = 2;
 		health = 2;
 		speed = 2;
@@ -106,10 +108,9 @@ public:
 void inputField(vector<string>& field);
 void outputField(vector<string>& field);
 
-void getKnightAndMonsters(vector<string>& field, int& xKnight, int& yKnight,
- list<int>& xMonster, list<int>& yMonster);
+void getKnightAndMonsters(vector<string>& field, dot& YXknight, list<dot>& YX);
 
-void createMonster(list<Monster>& monsters, list<int>& xMonster, list<int>& yMonster);
+void createMonster(list<Monster>& monsters, list<dot>& YXmonsters);
 
 void allMonstersWalk(list<Monster>& monsters, vector<string>& field);
 
@@ -117,19 +118,19 @@ void displayMonsters(list<Monster>& monsters);
 
 int main() {
 	vector<string> field;
-	int xKingt = 0, yKnight = 0;
-	list<int> xMonster, yMonster;
+	dot YXknight(0, 0);
+	list<dot> YXmonsters;
 	list<Monster> monsters;
 
 	int step = 0;
 
 	inputField(field);
 
-	getKnightAndMonsters(field, xKingt, yKnight, xMonster, yMonster);
+	getKnightAndMonsters(field,YXknight, YXmonsters);
 
-	createMonster(monsters, xMonster, yMonster);
+	createMonster(monsters, YXmonsters);
 
-	Knight holyKnight(yKnight, xKingt);	
+	Knight holyKnight(YXknight);	
 
 	cout << "insert step: 1,2,3,4" << endl;
 	cin >> step;
@@ -161,17 +162,16 @@ void outputField(vector<string>& field) {
 }
 
 
-void getKnightAndMonsters(vector<string>& field, int& xKnight, int& yKnight,
- list<int>& xMonster, list<int>& yMonster) {
+void getKnightAndMonsters(vector<string>& field, dot& YXknight, list<dot>& YXmonsters) {
 	for(int i = 0; i < field.size(); i++) {
 		for(int j = 0; j < field[i].length(); j++) {
 			if(field[i][j] == 'K') {
-				yKnight = i;
-				xKnight = j;
+				YXknight.y = i;
+				YXknight.x = j;
 			}
 			else if(field[i][j] == 'M') {
-				yMonster.push_back(i);
-				xMonster.push_back(j);
+				dot YX(i, j);
+				YXmonsters.push_back(YX);
 			}	
 		}
 	}	
@@ -187,14 +187,12 @@ void allMonstersWalk(list<Monster>& monsters, vector<string>& field) {
 }
 
 
-void createMonster(list<Monster>& monsters, list<int>& xMonster, list<int>& yMonster) {
-	list<int>::iterator iterX = xMonster.begin();
-	list<int>::iterator iterY = yMonster.begin();
-	while(iterX != xMonster.end() && iterY != yMonster.end()) {
-		Monster newMonster(*iterY, *iterX);
+void createMonster(list<Monster>& monsters, list<dot>& YXmonsters) {
+	list<dot>::iterator iterYX = YXmonsters.begin();
+	while(iterYX != YXmonsters.end()) {
+		Monster newMonster(*iterYX);
 		monsters.push_back(newMonster);
-		++iterX;
-		++iterY;
+		++iterYX;
 	}
 }
 
