@@ -11,6 +11,10 @@ int main() {
 	for(int i = 0; i < Y; i++) {
 		field[i] = new char[X];
 	}
+
+	
+
+
 	return 0;
 }
 
