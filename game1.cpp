@@ -16,15 +16,29 @@ public:
 
 class Character {
 protected:
+	bool isAlive;
+
 	int damage;
 	int health;
 	int speed;
 
 	int x;
 	int y;
-
 public:
-	virtual void walk(int step, vector<string>& field);
+
+	virtual int HitPoints() {
+		return health;
+	}
+
+	virtual int Damage() {
+		return damage;
+	}
+
+	virtual void Move(int step, vector<string>& field) {}
+
+	bool alive() {
+		return isAlive;
+	}
 
 	int getX() {
 		return x;
@@ -34,98 +48,131 @@ public:
 		return y;
 	}
 
+	virtual void getHit(int getDamage) {}
+
+	void fight(Character& atacker, Character& defender) {
+		cout << "fight" << endl;
+		while(atacker.alive() && defender.alive()) {
+			cout << "atacker deals:" << atacker.Damage() << endl;
+			defender.getHit(atacker.Damage());
+			cout << "defenders health:" << defender.HitPoints() << endl;
+			if(defender.alive()) {
+				cout << "defender alive" << endl;
+			}
+			else cout << "defender dead" << endl;	
+
+			if(defender.alive()){
+				cout << "defender deals:" << defender.Damage() << endl;
+				atacker.getHit(defender.Damage());
+				cout << "atacker health:" << atacker.HitPoints() << endl;
+				if(atacker.alive()) {
+					cout << "atacker alive" << endl;
+			 	}
+			 	else cout << "atacker dead" << endl;
+			}
+		}
+	}
+
 };
 
 
-class Knight {
-	int damage;
-	int health;
-	int speed;
-
-	int x;
-	int y;
+class Knight: public Character {
 public:
-	Knight(dot YX):y(YX.y), x(YX.x) {
-		damage = 2;
-		health = 2;
-		speed = 2;
+	Knight(dot YX) {
+		isAlive = true;
+		y = YX.y;
+		x = YX.x;
+		damage = 10;
+		health = 10;
+		speed = 1;
 	}
 
-	void walk(int step, vector<string>& field) {
-		if(step == 1 && x < field[y].length() - 1 && field[y][x + 1] != '#') {
-			field[y][x] = '.';
-			x++;
-			field[y][x] = 'K';
+
+	void Move(int step, vector<string>& field) {
+		int nextX = x;
+		int nextY = y;
+		if(step == 1) {
+			nextX++;
 		}
-		else if(step == 2 &&  x > 0 && field[y][x - 1] != '#') {
-			field[y][x] = '.';
-			x--;
-			field[y][x] = 'K';
+		else if(step == 2) {
+			nextX--;
 		}
-		else if(step == 3 && y < field.size() - 1 && field[y + 1][x] != '#') {
-			field[y][x] = '.';
-			y++;
-			field[y][x] = 'K';
+		else if(step == 3) {
+			nextY++;
 		}
-		else if(step == 4 &&  y > 0 && field[y - 1][x] != '#') {
+		else if(step == 4) {
+			nextY--;
+		}
+
+		if(nextY < field.size() && nextY >= 0 &&
+		 nextX < field[nextY].length() && nextX >= 0 &&
+		  field[nextY][nextX] != '#' && field[nextY][nextX] != 'M') {
 			field[y][x] = '.';
-			y--;
+			x = nextX;
+			y = nextY;
 			field[y][x] = 'K';
 		}
 	}
 
-	int getX() {
-		return x;
-	}
-	int getY() {
-		return y;
+	void getHit(int getDamage) {	
+		health -= getDamage;
+		if(!health > 0) {
+			isAlive = false;
+		}
 	}
 };
 
 
-class Monster{
-	int damage;
-	int health;
-	int speed;
-
-	int x;
-	int y;
+class Monster: public Character{
 public:
-	Monster(dot YX): y(YX.y), x(YX.x) {
+	Monster(dot YX) {
+		isAlive = true;
+		y = YX.y;
+		x = YX.x;
 		damage = 2;
 		health = 2;
-		speed = 2;
+		speed = 1;
 	}
 
-	void walk(vector<string>& field) {
-		int step = rand() % 4;
-		if(step == 0 && x < field[y].length() - 1 && field[y][x + 1] != '#') {
-			field[y][x] = '.';
-			x++;
-			field[y][x] = 'M';
+	void Move(vector<string>& field, Character& holyKnight) {
+		if(!isAlive) {
+			return;
 		}
-		else if(step == 1 &&  x > 0 && field[y][x - 1] != '#') {
-			field[y][x] = '.';
-			x--;
-			field[y][x] = 'M';
+		int step = rand() % 4 + 1;
+		int nextX = x;
+		int nextY = y;
+		if(step == 1) {
+			nextX++;
 		}
-		else if(step == 2 && y < field.size() - 1 && field[y + 1][x] != '#') {
-			field[y][x] = '.';
-			y++;
-			field[y][x] = 'M';
+		else if(step == 2) {
+			nextX--;
 		}
-		else if(step == 3 &&  y > 0 && field[y - 1][x] != '#') {
-			field[y][x] = '.';
-			y--;
-			field[y][x] = 'M';
+		else if(step == 3) {
+			nextY++;
 		}
-	}
+		else if(step == 4) {
+			nextY--;
+		}
 
-	int getX() {
-		return x;
+		if(nextY < field.size() && nextY >= 0 &&
+		 nextX < field[nextY].length() && nextX >= 0 &&
+		  field[nextY][nextX] != '#') {
+		  	if(field[nextY][nextX] != 'K') {
+				field[y][x] = '.';
+				x = nextX;
+				y = nextY;
+				field[y][x] = 'M';
+		  	}
+		  	else {
+		  		fight(*this, holyKnight);
+		  	}
+		}
 	}
-	int getY() {
-		return y;
+	void getHit(int getDamage) {	
+		health -= getDamage;
+		if(!health > 0) {
+			isAlive = false;
+		}
 	}
 };
 
@@ -134,9 +181,9 @@ void outputField(vector<string>& field);
 
 void getKnightAndMonsters(vector<string>& field, dot& YXknight, list<dot>& YX);
 
-void createMonster(list<Monster>& monsters, list<dot>& YXmonsters);
+void createMonsters(list<Monster>& monsters, list<dot>& YXmonsters);
 
-void allMonstersWalk(list<Monster>& monsters, vector<string>& field);
+void allMonstersMove(list<Monster>& monsters, vector<string>& field, Character& holyKnight);
 
 void displayMonsters(list<Monster>& monsters);
 
@@ -152,20 +199,21 @@ int main() {
 
 	getKnightAndMonsters(field,YXknight, YXmonsters);
 
-	createMonster(monsters, YXmonsters);
+	createMonsters(monsters, YXmonsters);
 
 	Knight holyKnight(YXknight);	
 
 	cout << "insert step: 1,2,3,4" << endl;
 	cin >> step;
-	while(step > 0) {
-		holyKnight.walk(step, field);
-		allMonstersWalk(monsters, field);
+	while(holyKnight.alive() && monsters.size() > 0) {
+		holyKnight.Move(step, field);
+		allMonstersMove(monsters, field, holyKnight);
 		cout << endl;
 		cout << "=======" << endl;
 		outputField(field);
 		cin >> step;
 	}
+	cout << "You Failed" << endl;
 
 	return 0;
 }
@@ -202,16 +250,22 @@ void getKnightAndMonsters(vector<string>& field, dot& YXknight, list<dot>& YXmon
 }
 
 
-void allMonstersWalk(list<Monster>& monsters, vector<string>& field) {
+void allMonstersMove(list<Monster>& monsters, vector<string>& field, Character& holyKnight) {
 	list<Monster>::iterator iter = monsters.begin();
-	while( iter != monsters.end()){
-		iter->walk(field);
-		++iter;
+	while(iter != monsters.end()){
+		iter->Move(field, holyKnight);
+		if(!iter->alive()) {
+			field[iter->getY()][iter->getX()] = '.';
+			monsters.erase(iter);
+		}
+		else {
+			++iter;
+		}
 	}
 }
 
 
-void createMonster(list<Monster>& monsters, list<dot>& YXmonsters) {
+void createMonsters(list<Monster>& monsters, list<dot>& YXmonsters) {
 	list<dot>::iterator iterYX = YXmonsters.begin();
 	while(iterYX != YXmonsters.end()) {
 		Monster newMonster(*iterYX);
