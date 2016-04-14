@@ -1,10 +1,13 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <list>
 #include <string>
 #include <algorithm>
 
 using namespace std;
+
+ifstream input("map.txt");
 
 class  dot{ 
 public:
@@ -48,80 +51,21 @@ public:
 		return y;
 	}
 
-	virtual void getHit(int getDamage) {}
-
-	void fight(Character& atacker, Character& defender) {
-		cout << "fight" << endl;
-		while(atacker.alive() && defender.alive()) {
-			cout << "atacker deals:" << atacker.Damage() << endl;
-			defender.getHit(atacker.Damage());
-			cout << "defenders health:" << defender.HitPoints() << endl;
-			if(defender.alive()) {
-				cout << "defender alive" << endl;
-			}
-			else cout << "defender dead" << endl;	
-
-			if(defender.alive()){
-				cout << "defender deals:" << defender.Damage() << endl;
-				atacker.getHit(defender.Damage());
-				cout << "atacker health:" << atacker.HitPoints() << endl;
-				if(atacker.alive()) {
-					cout << "atacker alive" << endl;
-			 	}
-			 	else cout << "atacker dead" << endl;
-			}
-		}
-	}
-
-};
-
-
-class Knight: public Character {
-public:
-	Knight(dot YX) {
-		isAlive = true;
-		y = YX.y;
-		x = YX.x;
-		damage = 10;
-		health = 10;
-		speed = 1;
-	}
-
-
-	void Move(int step, vector<string>& field) {
-		int nextX = x;
-		int nextY = y;
-		if(step == 1) {
-			nextX++;
-		}
-		else if(step == 2) {
-			nextX--;
-		}
-		else if(step == 3) {
-			nextY++;
-		}
-		else if(step == 4) {
-			nextY--;
-		}
-
-		if(nextY < field.size() && nextY >= 0 &&
-		 nextX < field[nextY].length() && nextX >= 0 &&
-		  field[nextY][nextX] != '#' && field[nextY][nextX] != 'M') {
-			field[y][x] = '.';
-			x = nextX;
-			y = nextY;
-			field[y][x] = 'K';
-		}
-	}
-
 	void getHit(int getDamage) {	
 		health -= getDamage;
-		if(!health > 0) {
+		if(health <= 0) {
 			isAlive = false;
+			cout << "dead" << endl;
 		}
 	}
-};
+	
+	void fight(Character& atacker, Character& defender) {
+		defender.getHit(atacker.Damage());
+		cout << "atacker deals: " << atacker.Damage() << endl;
+		cout << "defender's health: " << defender.HitPoints() << endl;
+	}
 
+};
 
 class Monster: public Character{
 public:
@@ -168,10 +112,56 @@ public:
 		  	}
 		}
 	}
-	void getHit(int getDamage) {	
-		health -= getDamage;
-		if(!health > 0) {
-			isAlive = false;
+};
+
+class Knight: public Character {
+public:
+	Knight(dot YX) {
+		isAlive = true;
+		y = YX.y;
+		x = YX.x;
+		damage = 10;
+		health = 10;
+		speed = 1;
+	}
+
+
+	void Move(int step, vector<string>& field, list<Monster>& monsters) {
+		int nextX = x;
+		int nextY = y;
+		if(step == 1) {
+			nextX++;
+		}
+		else if(step == 2) {
+			nextX--;
+		}
+		else if(step == 3) {
+			nextY++;
+		}
+		else if(step == 4) {
+			nextY--;
+		}
+
+		if(nextY < field.size() && nextY >= 0 &&
+		 nextX < field[nextY].length() && nextX >= 0 &&
+		  field[nextY][nextX] != '#') {
+		  	if(field[nextY][nextX] != 'M') {
+				field[y][x] = '.';
+				x = nextX;
+				y = nextY;
+				field[y][x] = 'K';
+		  	}
+		  	else {
+		  		list<Monster>::iterator iter = monsters.begin();
+		  		while(nextY != iter->getY() && nextX != iter->getX()) {
+		  			iter++;
+		  		}
+		  		fight(*this, *iter);
+		  		if(!iter->alive()) {
+		  			field[iter->getY()][iter->getX()] = '.';
+		  			monsters.erase(iter);
+		  		}
+		  	}
 		}
 	}
 };
@@ -196,6 +186,7 @@ int main() {
 	int step = 0;
 
 	inputField(field);
+	outputField(field);
 
 	getKnightAndMonsters(field,YXknight, YXmonsters);
 
@@ -204,26 +195,30 @@ int main() {
 	Knight holyKnight(YXknight);	
 
 	cout << "insert step: 1,2,3,4" << endl;
-	cin >> step;
 	while(holyKnight.alive() && monsters.size() > 0) {
-		holyKnight.Move(step, field);
+		cin >> step;
+		holyKnight.Move(step, field, monsters);
 		allMonstersMove(monsters, field, holyKnight);
 		cout << endl;
 		cout << "=======" << endl;
 		outputField(field);
-		cin >> step;
 	}
-	cout << "You Failed" << endl;
+	if(!holyKnight.alive()) {
+		cout << "You Failed" << endl;
+	}
+	else {
+		cout << "You Won" << endl;
+	}
 
 	return 0;
 }
 
 void inputField(vector<string>& field) {
 	string buffer;
-	getline(cin, buffer);
+	getline(input, buffer);
 	while(! buffer.empty()) {
 		field.push_back(buffer);
-		getline(cin, buffer);
+		getline(input, buffer);
 	}
 }
 
