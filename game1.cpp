@@ -64,7 +64,6 @@ public:
 		cout << "atacker deals: " << atacker.Damage() << endl;
 		cout << "defender's health: " << defender.HitPoints() << endl;
 	}
-
 };
 
 class Monster: public Character{
