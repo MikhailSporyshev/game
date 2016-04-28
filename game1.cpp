@@ -4,267 +4,244 @@
 #include <list>
 #include <string>
 #include <algorithm>
-
+ 
 using namespace std;
-
+ 
 ifstream input("map.txt");
 
-class  dot{ 
-public:
-	int y;
-	int x;
-	dot(int inputY, int inputX): y(inputY), x(inputX) {}
+struct Medkit;
+struct Character;
+ 
+struct Actor {
+    bool isAlive;
+    char sign;
+    int x, y;
+
+    Actor(int i, int j): y(i), x(j), isAlive(true) {}
+
+    virtual void collide(Actor* a) {}
+    virtual void collide(Medkit* m) {}
+    virtual void collide(Character* c) {}
+    virtual void Move(list<Actor*>& actors, vector<string>& field) {}
+};
+ 
+struct Medkit: Actor {
+    int val = 100;
+    
+    Medkit(int i, int j):Actor(i,j) {
+        sign = '+';
+    }
+
+    void collide(Actor* a) override {
+        a->collide(this);
+    }
+ 
+    void collide(Character* c) override;
+};
+ 
+struct Character: Actor {   
+    int hp = 100;
+    int dmg = 20;
+
+    Character(int i, int j):Actor(i, j) {
+        sign = 'C';
+    }
+
+    void getHit(int getDamage) {
+        this->hp -= getDamage;
+        if(this->hp <= 0) {
+            this->isAlive = false; 
+        }
+    }
+
+    void collide(Actor* a) override {
+        a->collide(this);
+        a = this;
+    }
+ 
+    void collide(Medkit* m) override {
+        hp += m->val;
+        cout << "+" << m->val << endl;
+        m->isAlive = false;
+    }
+
+    void collide(Character* c) override {
+        while(c->isAlive && this->isAlive) {
+            cout << " atacker deals: " << c->dmg;
+            this->getHit(c->dmg);
+            cout << " defenders health: " << this->hp << endl;
+            if(this->isAlive) {
+                cout << " defender deals: " << this->dmg;
+                c->getHit(this->dmg);
+                cout << " atackers health: " << c->hp << endl;    
+            }        
+        }
+        if(this->isAlive) {
+            cout << " atacker died" << endl;
+        }
+        else {
+            cout << " defender died" << endl;
+        }
+    }
+    virtual void Move(list<Actor*>& actors, vector<string>& field) {}
 };
 
+struct Knight: Character {
+    Knight(int i, int j):Character(i, j) {
+        sign = 'K';
+    }
 
-class Character {
-protected:
-	bool isAlive;
+    char makeStep() {
+        char step;
+        cin >> step;
+        return step;
+    };
 
-	int damage;
-	int health;
-	int speed;
-
-	int x;
-	int y;
-public:
-
-	virtual int HitPoints() {
-		return health;
-	}
-
-	virtual int Damage() {
-		return damage;
-	}
-
-	virtual void Move(int step, vector<string>& field) {}
-
-	bool alive() {
-		return isAlive;
-	}
-
-	int getX() {
-		return x;
-	}
-	
-	int getY() {
-		return y;
-	}
-
-	void getHit(int getDamage) {	
-		health -= getDamage;
-		if(health <= 0) {
-			isAlive = false;
-			cout << "dead" << endl;
-		}
-	}
-	
-	void fight(Character& atacker, Character& defender) {
-		defender.getHit(atacker.Damage());
-		cout << "atacker deals: " << atacker.Damage() << endl;
-		cout << "defender's health: " << defender.HitPoints() << endl;
-	}
+    void Move(list<Actor*>& actors, vector<string>& field) override {
+        if(!this->isAlive) {
+            return;
+        }
+        char step = makeStep();
+        int nextY = this->y; 
+        int nextX = this->x;
+        if(step == 'w') {
+            nextY--;
+        }
+        else if(step == 's') {
+            nextY++;
+        }
+        else if(step == 'd') {
+            nextX++;
+        }
+        else if(step == 'a') {
+            nextX--;
+        }
+        else {
+            return;
+        }
+        if((nextY < field.size() && nextY >= 0 )&&
+         (nextX < field[0].length() && nextX >= 0) &&
+          field[nextY][nextX] != '#') {
+            if(field[nextY][nextX] != '.') {
+                list<Actor*>::iterator iter = actors.begin(); 
+                while(!((*iter)->y == nextY && (*iter)->x == nextX)) {
+                    ++iter;
+                }
+                this->collide(*iter);
+            }
+            field[y][x] = '.';
+            if(this->isAlive) {
+                y = nextY;
+                x = nextX;
+                field[y][x] = this->sign;
+            }
+        }
+    }
 };
 
-class Monster: public Character{
-public:
-	Monster(dot YX) {
-		isAlive = true;
-		y = YX.y;
-		x = YX.x;
-		damage = 2;
-		health = 2;
-		speed = 1;
-	}
+struct Zombie: Character {
+    Zombie(int i, int j):Character(i, j) {
+        sign = 'Z';
+    }
 
-	void Move(vector<string>& field, Character& holyKnight) {
-		if(!isAlive) {
-			return;
-		}
-		int step = rand() % 4 + 1;
-		int nextX = x;
-		int nextY = y;
-		if(step == 1) {
-			nextX++;
-		}
-		else if(step == 2) {
-			nextX--;
-		}
-		else if(step == 3) {
-			nextY++;
-		}
-		else if(step == 4) {
-			nextY--;
-		}
+    int makeStep() {
+        int step = rand() % 4 + 1;
+        return step;
+    };
 
-		if(nextY < field.size() && nextY >= 0 &&
-		 nextX < field[nextY].length() && nextX >= 0 &&
-		  field[nextY][nextX] != '#') {
-		  	if(field[nextY][nextX] != 'K') {
-				field[y][x] = '.';
-				x = nextX;
-				y = nextY;
-				field[y][x] = 'M';
-		  	}
-		  	else {
-		  		fight(*this, holyKnight);
-		  	}
-		}
-	}
+    void Move(list<Actor*>& actors, vector<string>& field) override {
+        if(!this->isAlive) {
+            return;
+        }
+        int step = makeStep();
+        int nextY = this->y; 
+        int nextX = this->x;
+        if(step == 1) {
+            nextY--;
+        }
+        else if(step == 2) {
+            nextY++;
+        }
+        else if(step == 3) {
+            nextX++;
+        }
+        else if(step == 4) {
+            nextX--;
+        }
+        if((nextY < field.size() && nextY >= 0 )&&
+         (nextX < field[0].length() && nextX >= 0) &&
+          field[nextY][nextX] != '#' &&
+          field[nextY][nextX] != 'Z') {      
+            if(field[nextY][nextX] != '.') {
+                list<Actor*>::iterator iter = actors.begin(); 
+                
+                while(!((*iter)->y == nextY && (*iter)->x == nextX)) {
+                    ++iter;
+                }
+                
+                this->collide(*iter);
+            }
+            field[y][x] = '.';
+            
+            if(this->isAlive) {
+                y = nextY;
+                x = nextX;
+                field[y][x] = this->sign;
+            }
+        }
+    }
 };
-
-class Knight: public Character {
-public:
-	Knight(dot YX) {
-		isAlive = true;
-		y = YX.y;
-		x = YX.x;
-		damage = 10;
-		health = 10;
-		speed = 1;
-	}
-
-
-	void Move(int step, vector<string>& field, list<Monster>& monsters) {
-		int nextX = x;
-		int nextY = y;
-		if(step == 1) {
-			nextX++;
-		}
-		else if(step == 2) {
-			nextX--;
-		}
-		else if(step == 3) {
-			nextY++;
-		}
-		else if(step == 4) {
-			nextY--;
-		}
-
-		if(nextY < field.size() && nextY >= 0 &&
-		 nextX < field[nextY].length() && nextX >= 0 &&
-		  field[nextY][nextX] != '#') {
-		  	if(field[nextY][nextX] != 'M') {
-				field[y][x] = '.';
-				x = nextX;
-				y = nextY;
-				field[y][x] = 'K';
-		  	}
-		  	else {
-		  		list<Monster>::iterator iter = monsters.begin();
-		  		while(nextY != iter->getY() && nextX != iter->getX()) {
-		  			iter++;
-		  		}
-		  		fight(*this, *iter);
-		  		if(!iter->alive()) {
-		  			field[iter->getY()][iter->getX()] = '.';
-		  			monsters.erase(iter);
-		  		}
-		  	}
-		}
-	}
-};
-
-void inputField(vector<string>& field);
-void outputField(vector<string>& field);
-
-void getKnightAndMonsters(vector<string>& field, dot& YXknight, list<dot>& YX);
-
-void createMonsters(list<Monster>& monsters, list<dot>& YXmonsters);
-
-void allMonstersMove(list<Monster>& monsters, vector<string>& field, Character& holyKnight);
-
-void displayMonsters(list<Monster>& monsters);
-
-int main() {
-	vector<string> field;
-	dot YXknight(0, 0);
-	list<dot> YXmonsters;
-	list<Monster> monsters;
-
-	int step = 0;
-
-	inputField(field);
-	outputField(field);
-
-	getKnightAndMonsters(field,YXknight, YXmonsters);
-
-	createMonsters(monsters, YXmonsters);
-
-	Knight holyKnight(YXknight);	
-
-	cout << "insert step: 1,2,3,4" << endl;
-	while(holyKnight.alive() && monsters.size() > 0) {
-		cin >> step;
-		holyKnight.Move(step, field, monsters);
-		allMonstersMove(monsters, field, holyKnight);
-		cout << endl;
-		cout << "=======" << endl;
-		outputField(field);
-	}
-	if(!holyKnight.alive()) {
-		cout << "You Failed" << endl;
-	}
-	else {
-		cout << "You Won" << endl;
-	}
-
-	return 0;
+ 
+void Medkit::collide(Character* c) {
+    c->collide(this);
 }
 
-void inputField(vector<string>& field) {
+void getField(vector<string>& field);
+void displayField(vector<string>& field);
+
+int main() {
+    vector<string> field;
+    list<Actor*> actors;
+    Knight* knightPtr;
+
+
+    getField(field);
+    cout << "here" <<                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    endl;
+    displayField(field);
+/*
+    for(int i = 0; i < field.size(); i++) {
+	    for(int j = 0; j < field[0].length(); j++) {
+	        if(field[i][j] == 'Z') {
+	            actors.push_back(new Zombie(i, j));
+	        }
+	        else if(field[i][j] == 'K') {
+	            knightPtr = new Knight(i, j);
+                actors.push_front(knightPtr);
+	        }
+            else if(field[i][j] == '+') {
+                actors.push_back(new Medkit(i, j));
+            }
+	    }
+    } 
+    while((*actors.begin())->isAlive) {
+        for(list<Actor*>:: iterator iter = actors.begin(); iter != actors.end(); ++iter) {
+            (*iter)->Move(actors, field);
+    	}
+	    displayField(field);
+    }*/
+    return 0;
+}
+
+void getField(vector<string>& field) {
 	string buffer;
 	getline(input, buffer);
-	while(! buffer.empty()) {
+	while(!buffer.empty()) {
 		field.push_back(buffer);
 		getline(input, buffer);
 	}
 }
-
-void outputField(vector<string>& field) {
-	for(vector<string>::iterator iter = field.begin(); iter != field.end(); ++iter) {
-		cout << *iter << endl;
-	}
-}
-
-
-void getKnightAndMonsters(vector<string>& field, dot& YXknight, list<dot>& YXmonsters) {
+void displayField(vector<string>& field) {
 	for(int i = 0; i < field.size(); i++) {
-		for(int j = 0; j < field[i].length(); j++) {
-			if(field[i][j] == 'K') {
-				YXknight.y = i;
-				YXknight.x = j;
-			}
-			else if(field[i][j] == 'M') {
-				dot YX(i, j);
-				YXmonsters.push_back(YX);
-			}	
-		}
-	}	
-}
-
-
-void allMonstersMove(list<Monster>& monsters, vector<string>& field, Character& holyKnight) {
-	list<Monster>::iterator iter = monsters.begin();
-	while(iter != monsters.end()){
-		iter->Move(field, holyKnight);
-		if(!iter->alive()) {
-			field[iter->getY()][iter->getX()] = '.';
-			monsters.erase(iter);
-		}
-		else {
-			++iter;
-		}
+		cout << field[i] << endl;
 	}
 }
-
-
-void createMonsters(list<Monster>& monsters, list<dot>& YXmonsters) {
-	list<dot>::iterator iterYX = YXmonsters.begin();
-	while(iterYX != YXmonsters.end()) {
-		Monster newMonster(*iterYX);
-		monsters.push_back(newMonster);
-		++iterYX;
-	}
-}
-
